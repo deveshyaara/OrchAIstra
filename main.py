@@ -1,7 +1,7 @@
 import argparse
 import sys
-from graph import build_graph
-import vectors
+from src.graph import build_graph
+import src.vectors as vectors
 
 def parse_arguments():
     parser = argparse.ArgumentParser(

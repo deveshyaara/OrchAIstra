@@ -1,7 +1,7 @@
 import streamlit as st
 import time
-from graph import build_graph
-import vectors
+from src.graph import build_graph
+import src.vectors as vectors
 import os
 import json
 

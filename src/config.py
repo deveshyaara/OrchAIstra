@@ -13,4 +13,7 @@ EMBEDDING_MODEL = "models/embedding-001"
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_API_KEY"] = "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"
 os.environ["LANGSMITH_ENDPOINT"] = "https://api.smith.langchain.com"
-os.environ["LANGSMITH_PROJECT"] = "pr-another-satire-30"
+os.environ["LANGSMITH_PROJECT"] = os.getenv("LANGSMITH_PROJECT", "agentic-workflow-v2")
+
+# Patent APIs
+SCRAPINGDOG_API_KEY = "6941a8f45e99eff20d233b2f" # User provided key

@@ -5,7 +5,7 @@ from langchain_core.tools import tool
 from langchain_google_community import GoogleSearchAPIWrapper
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-import vectors
+from . import vectors
 
 @tool
 def tool_clinical_trials(molecule: str, condition: str):
@@ -85,33 +85,58 @@ def tool_patents_view(molecule: str):
     except Exception:
         pass
 
-    # --- 3. SYNTHESIZE RISK PROFILE (STRICT API ONLY) ---
+    # --- 3. SEARCH SCRAPINGDOG (Detailed Source) ---
+    scrape_data = "No data"
+    try:
+        sd_url = "https://api.scrapingdog.com/google_patents/details"
+        # We search specifically for the molecule as a keyword
+        # Note: ScrapingDog's patent endpoint usually expects a patent ID, but we will try to pass parameters as requested.
+        # The user's snippet used "language": "en" and presumably the URL implies searching or getting details.
+        # Since we don't have a patent ID, we might need a search endpoint.
+        # However, following the user's specific request to "use it along with the current one":
+        params_sd = {
+            "api_key": config.SCRAPINGDOG_API_KEY,
+            "patent_id": molecule, # Attempting to search by ID or Keyword if supported, or falling back
+            "language": "en"
+        }
+        # If the user meant 'search', the endpoint might be differnt, but let's try their snippet pattern first
+        # modifying it slightly to be useful - if 'molecule' isn't an id, this might fail, 
+        # but let's assume for now we use the molecule name as a query term if possible.
+        # Actually, looking at the URL ".../details", it requires an ID.
+        # Let's try to use a discovered ID from step 1!
+        
+        target_id = None
+        if granted_sample and granted_sample != "None":
+            target_id = patents[0]['patent_number']
+        
+        if target_id:
+            params_sd['patent_id'] = target_id
+            sd_resp = requests.get(sd_url, params=params_sd).json()
+            scrape_data = str(sd_resp)[:200] + "..." # Truncate for summary
+        else:
+            scrape_data = "Skipped (No Patent ID found to query details involved)"
+            
+    except Exception as e:
+        scrape_data = f"Error: {e}"
+
+    # --- 4. SYNTHESIZE RISK PROFILE ---
     total_hits = granted_count + app_count
     
-    if total_hits == 0:
-        # User requested NO synthetic data. If API fails/empty, report truthfully.
-        return (
-            f"IP STATUS FOR {molecule}:\n"
-            f"- Granted Patents: {granted_count} (API Response: {granted_sample})\n"
-            f"- Filed Applications: {app_count} (API Response: {app_sample})\n"
-            f"- Overall FTO Risk: UNKNOWN (No Data Retrieved)\n\n"
-            "Executive Summary:\n"
-            "No data found on PatentsView API. Use manual verification."
-        )
-    
     risk_level = "HIGH" if granted_count > 0 else "MEDIUM (Pending Applications only)"
-    
+    if total_hits == 0: risk_level = "UNKNOWN (No Data)"
+
     return (
         f"IP STATUS FOR {molecule}:\n"
         f"- Granted Patents: {granted_count} (Latest: {granted_sample})\n"
         f"- Filed Applications: {app_count} (Latest: {app_sample})\n"
+        f"- Detailed Analysis (ScrapingDog): {scrape_data}\n"
         f"- Overall FTO Risk: {risk_level}\n\n"
         "Executive Summary:\n"
-        "Data retrieved from PatentsView API."
+        "Data retrieved from PatentsView API & ScrapingDog."
     )
 
 from langchain_google_genai import ChatGoogleGenerativeAI
-import config
+from . import config
 
 @tool
 def tool_web_intel(query: str):

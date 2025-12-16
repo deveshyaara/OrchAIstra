@@ -1,7 +1,7 @@
 from langgraph.graph import StateGraph, END
-from state import AgentState
-from agents import master_node, run_worker
-import tools
+from .state import AgentState
+from .agents import master_node, run_worker
+from . import tools
 
 def node_clinical(s): return run_worker(s, "clinical", tools.tool_clinical_trials)
 def node_patent(s): return run_worker(s, "patent", tools.tool_patents_view)

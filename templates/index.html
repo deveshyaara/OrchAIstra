@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Jovian R&D Engine</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.23.0/cytoscape.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0e1117;
+            --card-bg: #1e2229;
+            --accent: #00ff88;
+            /* Neon Green for active nodes */
+            --text-main: #ffffff;
+            --text-dim: #a1a1aa;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- LAYOUT --- */
+        .header {
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            height: 100%;
+        }
+
+        /* --- LEFT COLUMN: THE WALKING GRAPH --- */
+        .graph-panel {
+            flex: 1;
+            /* Takes 40% of width */
+            border-right: 1px solid #333;
+            position: relative;
+            background: radial-gradient(circle at center, #1a1e24 0%, #0e1117 100%);
+        }
+
+        #cy {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .graph-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            z-index: 10;
+        }
+
+        /* --- RIGHT COLUMN: CHAT & LOGS --- */
+        .workspace-panel {
+            flex: 1.5;
+            /* Takes 60% of width */
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            gap: 1.5rem;
+            overflow-y: auto;
+        }
+
+        /* --- CHAT COMPONENTS --- */
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: var(--card-bg);
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+
+        button {
+            padding: 0 25px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .log-container {
+            flex: 1;
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding-left: 10px;
+            border-left: 2px solid transparent;
+        }
+
+        .log-entry.master {
+            border-color: #a855f7;
+            color: #d8b4fe;
+        }
+
+        .log-entry.worker {
+            border-color: #00ff88;
+            color: #86efac;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <div>
+            <h2 style="margin:0;">🧬 Jovian AI <span style="font-weight:400; font-size:0.8em; color:#666;">v2.0</span>
+            </h2>
+        </div>
+        <div>
+            <span style="color:#00ff88;">● System Online</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+
+        <div class="graph-panel">
+            <div class="graph-label">📡 LIVE NETWORK TOPOLOGY</div>
+            <div id="cy"></div>
+        </div>
+
+        <div class="workspace-panel">
+            <div style="text-align:center; margin-bottom:20px;">
+                <h1>Research Assistant</h1>
+                <p style="color:gray;">Autonomous Swarm for Pharmaceutical R&D</p>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="queryInput" placeholder="e.g., Investigate repurposing Molecule X for COPD..."
+                    value="Investigate repurposing Molecule X for COPD">
+                <button onclick="runAnalysis()">🚀 Launch Swarm</button>
+            </div>
+
+            <!-- New Control Panel -->
+            <div style="display:flex; gap:10px;">
+                <button onclick="downloadReport()" style="background:#a855f7;">📄 Download PDF</button>
+                <button onclick="takeScreenshot()" style="background:#333; border:1px solid #555;">📷 Screenshot
+                    Graph</button>
+            </div>
+
+            <div class="log-container" id="logs">
+                <div style="color:#666;">> Awaiting directive...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. INITIALIZE CYTOSCAPE GRAPH (The Walking Graph) ---
+        var cy = cytoscape({
+            container: document.getElementById('cy'),
+
+            // The Static Topology (Master in center, Workers around it)
+            elements: [
+                // NODES
+                { data: { id: 'master', label: '🧠 MASTER' } },
+                { data: { id: 'clinical', label: '💊 Clinical' } },
+                { data: { id: 'patent', label: '⚖️ Patent' } },
+                { data: { id: 'web', label: '🌍 Web Intel' } },
+                { data: { id: 'internal', label: '🏢 Internal' } },
+                { data: { id: 'report_gen', label: '📄 Report' } },
+
+                // EDGES (Connecting them)
+                { data: { source: 'master', target: 'clinical' } },
+                { data: { source: 'master', target: 'patent' } },
+                { data: { source: 'master', target: 'web' } },
+                { data: { source: 'master', target: 'internal' } },
+                { data: { source: 'clinical', target: 'report_gen' } },
+                { data: { source: 'patent', target: 'report_gen' } },
+                { data: { source: 'web', target: 'report_gen' } }
+            ],
+
+            style: [ // THE SCI-FI THEME
+                {
+                    selector: 'node',
+                    style: {
+                        'background-color': '#333',
+                        'label': 'data(label)',
+                        'color': '#fff',
+                        'font-family': 'Inter',
+                        'font-size': '12px',
+                        'text-valign': 'bottom',
+                        'text-margin-y': 5,
+                        'width': 40,
+                        'height': 40,
+                        'border-width': 2,
+                        'border-color': '#555'
+                    }
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        'width': 2,
+                        'line-color': '#333',
+                        'target-arrow-color': '#333',
+                        'target-arrow-shape': 'triangle',
+                        'curve-style': 'bezier'
+                    }
+                },
+                // THE "ACTIVE" CLASS (This makes it light up Green)
+                {
+                    selector: '.active',
+                    style: {
+                        'background-color': '#00ff88',
+                        'line-color': '#00ff88',
+                        'target-arrow-color': '#00ff88',
+                        'border-color': '#fff',
+                        'border-width': 4,
+                        'width': 50,
+                        'height': 50,
+                        'transition-property': 'background-color, line-color, width, height',
+                        'transition-duration': '0.3s'
+                    }
+                }
+            ],
+
+            layout: {
+                name: 'circle', // Simple circle layout
+                padding: 50
+            }
+        });
+
+        // Force Master node to center manually for a "Star" look
+        cy.$('#master').position({ x: cy.width() / 2, y: cy.height() / 2 });
+        cy.$('#report_gen').position({ x: cy.width() / 2, y: cy.height() - 50 });
+
+
+        // --- 2. BACKEND STREAMING LOGIC ---
+        async function runAnalysis() {
+            const query = document.getElementById('queryInput').value;
+            const logBox = document.getElementById('logs');
+            logBox.innerHTML = '<div style="color:#00ff88;">> Initializing Uplink...</div>';
+
+            // Reset Graph Styles
+            cy.elements().removeClass('active');
+
+            try {
+                const response = await fetch('/api/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        const data = JSON.parse(line);
+
+                        // A. UPDATE LOGS
+                        if (data.log) {
+                            const entry = document.createElement('div');
+                            entry.className = data.active_node === 'master' ? 'log-entry master' : 'log-entry worker';
+                            entry.textContent = data.log;
+                            logBox.appendChild(entry);
+                            logBox.scrollTop = logBox.scrollHeight;
+                        }
+
+                        // B. UPDATE GRAPH VISUALIZATION (The "Walking" Part)
+                        if (data.active_node) {
+                            // Turn off old active nodes
+                            cy.elements().removeClass('active');
+
+                            // Light up the specific node
+                            const activeNode = cy.$('#' + data.active_node);
+                            activeNode.addClass('active');
+
+                            // Also light up edges connected to Master
+                            if (data.active_node !== 'master') {
+                                cy.$('#master').edgesTo(activeNode).addClass('active');
+                            }
+                        }
+                    }
+                }
+
+                // Final State
+                logBox.innerHTML += '<div style="color:#00ff88; margin-top:10px;">> ✅ PROCESS COMPLETE. REPORT GENERATED.</div>';
+                cy.elements().removeClass('active');
+                cy.$('#report_gen').addClass('active'); // Highlight Report node at end
+
+            } catch (err) {
+                logBox.innerHTML += `<div style="color:red;">> Error: ${err}</div>`;
+            }
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+
+</html>

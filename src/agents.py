@@ -2,9 +2,9 @@ import uuid
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
-import config
-from state import AgentState
-import tools
+from . import config
+from .state import AgentState
+from . import tools
 from tenacity import retry, stop_after_attempt, wait_exponential
 from langchain_community.llms import FakeListLLM
 import json
@@ -12,7 +12,7 @@ import json
 llm = ChatGoogleGenerativeAI(model=config.GEMINI_MODEL, temperature=0.3)
 
 class PlanSchema(BaseModel):
-    tasks: list[dict] = Field(description="List of tasks with 'worker_type' and 'description'.")
+    tasks: list[dict] = Field(description="List of tasks. Each task has 'worker_type', 'description', and 'parameters' (dict).")
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def invoke_llm(prompt):
@@ -26,19 +26,35 @@ def invoke_structured_llm(prompt, schema):
     structured_llm = llm.with_structured_output(schema)
     return structured_llm.invoke(prompt)
 
+from . import vectors
+
 def master_node(state: AgentState):
     print(f"\n[Master] Planning Step...")
     
+    # 1. Check if we already have a finished plan
     if state.get("plan") and all(t['status'] == 'complete' for t in state['plan']):
         return {"final_report_path": "READY"}
 
+    # 2. Check Cache (Optimization)
+    if not state.get("plan"):
+        cached_result = vectors.check_cache(state['user_query'])
+        if cached_result:
+            print(f"[Master] Found valid cached report. Skipping agents.")
+            return {
+                "results": [{"worker_id": "cache", "content": cached_result}],
+                "plan": [{"task_id": "cache_hit", "worker_type": "report_gen", "status": "complete", "description": "Retrieved from Cache"}]
+            }
+
+    # 3. Create Plan (if no cache)
     if not state.get("plan"):
         # Explicitly ask for JSON to help the model
         prompt = ChatPromptTemplate.from_messages([
             ("system", "You are a Pharma R&D Strategy Manager. Create a research plan. "
                        "Return a JSON object with a 'tasks' list. "
-                       "Each task must have: 'worker_type' (one of: clinical, patent, web, internal, iqvia, exim) "
-                       "and 'description' (string)."),
+                       "Each task must have: 'worker_type', 'description', and 'parameters'.\n"
+                       " - Clinical tool needs 'molecule' and 'condition' in parameters.\n"
+                       " - Patent tool needs 'molecule' in parameters.\n"
+                       " - Web/Internal tools need 'query' in parameters."),
             ("human", f"Query: {state['user_query']}")
         ])
         
@@ -49,9 +65,9 @@ def master_node(state: AgentState):
             print(f"LLM Planning Failed: {e}. Using fallback plan.")
             class FallbackPlan:
                 tasks = [
-                    {"worker_type": "clinical", "description": "Search for clinical trials"},
-                    {"worker_type": "patent", "description": "Analyze patent landscape"},
-                    {"worker_type": "web", "description": "Search for market news"}
+                    {"worker_type": "clinical", "description": "Search for clinical trials", "parameters": {"molecule": "Molecule X", "condition": "COPD"}},
+                    {"worker_type": "patent", "description": "Analyze patent landscape", "parameters": {"molecule": "Molecule X"}},
+                    {"worker_type": "web", "description": "Search for market news", "parameters": {"query": "Pharma market news"}}
                 ]
             plan = FallbackPlan()
         
@@ -61,15 +77,17 @@ def master_node(state: AgentState):
             if isinstance(t, dict):
                 w_type = t['worker_type']
                 desc = t['description']
+                params = t.get('parameters', {"q": state['user_query']})
             else:
                 w_type = t.worker_type
                 desc = t.description
+                params = t.parameters # Pydantic model access
                 
             new_tasks.append({
                 "task_id": str(uuid.uuid4())[:8],
                 "worker_type": w_type,
                 "description": desc,
-                "params": {"q": state['user_query']}, 
+                "params": params, 
                 "status": "pending"
             })
         
@@ -88,8 +106,22 @@ def run_worker(state: AgentState, worker_name: str, tool_func):
     
     for task in tasks:
         try:
-            if worker_name == "clinical": output = tool_func.invoke({"molecule": "Molecule X", "condition": "COPD"})
-            elif worker_name == "patent": output = tool_func.invoke("Molecule X")
+            params = task.get('params', {})
+            
+            if worker_name == "clinical": 
+                # Ensure we have molecule and condition
+                mol = params.get("molecule", "Unknown Molecule")
+                cond = params.get("condition", "General")
+                output = tool_func.invoke({"molecule": mol, "condition": cond})
+            elif worker_name == "patent": 
+                mol = params.get("molecule", "Unknown Molecule")
+                output = tool_func.invoke({"molecule": mol})
+            elif worker_name == "web":
+                query = params.get("query", params.get("q", "Pharma trends"))
+                output = tool_func.invoke({"query": query})
+            elif worker_name == "internal":
+                query = params.get("query", params.get("q", "Analysis"))
+                output = tool_func.invoke({"query": query})
             elif worker_name == "report_gen":
                 evidence = "\n".join([f"{r['worker_id']}: {r['content']}" for r in state['results']])
                 try:
@@ -97,8 +129,20 @@ def run_worker(state: AgentState, worker_name: str, tool_func):
                 except Exception as e:
                     print(f"Report Gen LLM Failed: {e}")
                     summary = f"Executive Summary (Auto-Generated Fallback):\n\nBased on the collected evidence:\n{evidence}\n\n(Note: AI Summarization encountered an error, raw data provided above.)"
-                output = tool_func.invoke({"text": summary})
-            else: output = tool_func.invoke(state['user_query'])
+                
+                # CACHE THE SUCCESSFUL REPORT
+                print("[Report Agent] Caching result to Vector DB...")
+                vectors.store_report(state['user_query'], summary)
+                
+                output = tool_func.invoke({"text": summary, "filename": "Strategy_Report.pdf"})
+            else: 
+                # Generic fallback 
+                query = params.get("query", params.get("q", "Analysis"))
+                # Try invoking with simple string if unknown tool signature, or dict if known
+                try:
+                    output = tool_func.invoke(query)
+                except:
+                    output = tool_func.invoke({"query": query})
         except Exception as e: output = str(e)
 
         results.append({"task_id": task['task_id'], "worker_id": worker_name, "content": str(output), "raw_data": output})
