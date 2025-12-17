@@ -4,25 +4,44 @@
 <head>
     <meta charset="UTF-8">
     <title>Jovian R&D Engine</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Poppins:200,300,400,600,700,800" rel="stylesheet" />
+    <link href="https://use.fontawesome.com/releases/v5.0.6/css/all.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.23.0/cytoscape.min.js"></script>
 
+
     <style>
+        /* --- BLACK DASHBOARD THEME --- */
         :root {
-            --bg-color: #0e1117;
-            --card-bg: #1e2229;
-            --accent: #00ff88;
-            /* Neon Green for active nodes */
+            /* Core Colors from Black Dashboard */
+            --bg-color: #1e1e2f;
+            /* Body Background */
+            --card-bg: #27293d;
+            /* Card Background */
+            --primary: #e14eca;
+            /* Pink/Magenta Primary */
+            --blue: #5e72e4;
+            --purple: #8965e0;
+            --info: #1d8cf8;
+            /* Blue for Info */
+            --success: #00f2c3;
+            /* Teal/Green for Success */
+            --danger: #fd5d93;
+            /* Pinkish Red */
+            --warning: #ff8d72;
+            /* Orange */
             --text-main: #ffffff;
-            --text-dim: #a1a1aa;
+            --text-dim: #9a9a9a;
+            /* Muted Text */
+            --border-color: #2b3553;
         }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
-            font-family: 'Inter', sans-serif;
+            font-family: "Poppins", sans-serif;
+            font-size: 0.875rem;
+            font-weight: 400;
+            line-height: 1.5;
             margin: 0;
             height: 100vh;
             display: flex;
@@ -30,15 +49,30 @@
             overflow: hidden;
         }
 
-        /* --- LAYOUT --- */
+        /* --- TYPOGRAPHY --- */
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            color: var(--text-main);
+            font-weight: 300;
+        }
+
         .header {
             padding: 1rem 2rem;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: var(--bg-color);
+            box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.05);
+            /* Subtle shadow from theme */
+            z-index: 100;
         }
 
+        /* --- LAYOUT --- */
         .main-container {
             display: flex;
             flex: 1;
@@ -48,10 +82,10 @@
         /* --- LEFT COLUMN: THE WALKING GRAPH --- */
         .graph-panel {
             flex: 1;
-            /* Takes 40% of width */
-            border-right: 1px solid #333;
+            border-right: 1px solid var(--border-color);
             position: relative;
-            background: radial-gradient(circle at center, #1a1e24 0%, #0e1117 100%);
+            background: radial-gradient(circle at center, #2b3553 0%, #1e1e2f 100%);
+            /* Adjusted gradient */
         }
 
         #cy {
@@ -64,26 +98,30 @@
             position: absolute;
             top: 10px;
             left: 10px;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 0.8rem;
+            background: rgba(30, 30, 47, 0.8);
+            /* Matches bg-color */
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
             color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
             z-index: 10;
+            border: 1px solid var(--border-color);
         }
 
         /* --- RIGHT COLUMN: CHAT & LOGS --- */
         .workspace-panel {
             flex: 1.5;
-            /* Takes 60% of width */
             display: flex;
             flex-direction: column;
             padding: 2rem;
             gap: 1.5rem;
             overflow-y: auto;
+            background: var(--bg-color);
         }
 
-        /* --- CHAT COMPONENTS --- */
+        /* --- COMPONENT: INPUTS (Black Dashboard Style) --- */
         .input-group {
             display: flex;
             gap: 10px;
@@ -91,40 +129,91 @@
 
         input[type="text"] {
             flex: 1;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            background: var(--card-bg);
-            color: white;
-            font-family: 'Inter', sans-serif;
+            padding: 10px 18px;
+            border-radius: 30px;
+            /* Rounded pill style */
+            border: 1px solid #2b3553;
+            background: #1e1e2f;
+            /* Darker than card, or same as bg */
+            color: rgba(255, 255, 255, 0.8);
+            font-family: inherit;
+            font-size: 0.875rem;
+            transition: all 0.3s cubic-bezier(0.21, 0.6, 0.35, 1);
+            /* Theme transition */
         }
 
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: #1e1e2f;
+        }
+
+        /* --- COMPONENT: BUTTONS (Black Dashboard Style) --- */
         button {
-            padding: 0 25px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 8px;
+            padding: 11px 40px;
+            font-size: 0.875rem;
             font-weight: 600;
+            border-radius: 30px;
+            /* Fully rounded */
+            border: none;
             cursor: pointer;
-            transition: background 0.2s;
+            text-transform: uppercase;
+            /* Theme often uses uppercase */
+            letter-spacing: 0.5px;
+            transition: all 0.15s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+            color: white;
+            background: linear-gradient(to bottom left, #e14eca, #ba54f5, #e14eca);
+            /* Primary Gradient */
+            background-size: 210% 210%;
+            background-position: top right;
         }
 
         button:hover {
-            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
         }
 
+        button:active {
+            transform: translateY(1px);
+        }
+
+        /* Secondary Button Style */
+        .btn-secondary {
+            background: linear-gradient(to bottom left, #fd5d93, #ec250d, #fd5d93);
+            /* Danger/Warning Gradient */
+            color: white;
+        }
+
+        .btn-dark {
+            background: #2b3553;
+            /* Dark/Default */
+            box-shadow: none;
+            color: var(--text-main);
+        }
+
+        .btn-dark:hover {
+            background: #344675;
+        }
+
+        /* --- COMPONENT: CARD/LOGS --- */
         .log-container {
             flex: 1;
-            background: #000;
-            border: 1px solid #333;
-            border-radius: 10px;
-            padding: 1rem;
+            background: var(--card-bg);
+            border: 0;
+            border-radius: 0.2857rem;
+            /* Theme radius */
+            padding: 1.5rem;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            line-height: 1.6;
             overflow-y: auto;
             white-space: pre-wrap;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 1px 20px 0px rgba(0, 0, 0, 0.1);
+            /* Theme Shadow */
+            position: relative;
         }
 
         .log-entry {
@@ -134,13 +223,14 @@
         }
 
         .log-entry.master {
-            border-color: #a855f7;
-            color: #d8b4fe;
+            border-color: var(--primary);
+            color: #ff8d72;
+            /* Warning color for distinction */
         }
 
         .log-entry.worker {
-            border-color: #00ff88;
-            color: #86efac;
+            border-color: var(--success);
+            color: var(--success);
         }
     </style>
 </head>
@@ -178,9 +268,8 @@
 
             <!-- New Control Panel -->
             <div style="display:flex; gap:10px;">
-                <button onclick="downloadReport()" style="background:#a855f7;">📄 Download PDF</button>
-                <button onclick="takeScreenshot()" style="background:#333; border:1px solid #555;">📷 Screenshot
-                    Graph</button>
+                <button class="btn-secondary" onclick="downloadReport()">📄 Download PDF</button>
+                <button class="btn-dark" onclick="takeScreenshot()">📷 Screenshot Graph</button>
             </div>
 
             <div class="log-container" id="logs">
@@ -188,6 +277,201 @@
             </div>
         </div>
     </div>
+
+    <!-- Help Chatbot -->
+    <div id="helpChatbot">
+        <!-- Chat Bubble -->
+        <div id="chatBubble" onclick="toggleChat()">
+            <span style="font-size:24px;">💬</span>
+        </div>
+
+        <!-- Tooltip -->
+        <div id="chatTooltip" class="chat-tooltip">Need help?</div>
+
+        <!-- Chat Window -->
+        <div id="chatWindow" class="chat-window">
+            <div class="chat-header">
+                <span>🤖 AI Assistant</span>
+                <button onclick="toggleChat()"
+                    style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">&times;</button>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="bot-message">
+                    Hi! I'm here to help you use the Research Assistant. Try these:
+                </div>
+                <div class="suggested-questions">
+                    <button class="suggestion-btn" onclick="askQuestion('How do I write a good research query?')">How do
+                        I write a good query?</button>
+                    <button class="suggestion-btn" onclick="askQuestion('What can this system analyze?')">What can this
+                        analyze?</button>
+                    <button class="suggestion-btn" onclick="askQuestion('How do I download my report?')">How to download
+                        reports?</button>
+                </div>
+            </div>
+            <div class="chat-input-container">
+                <input type="text" id="chatInput" placeholder="Ask me anything..."
+                    onkeypress="if(event.key==='Enter') sendChatMessage()">
+                <button onclick="sendChatMessage()"
+                    style="background:#e14eca; border:none; padding:10px 20px; border-radius:20px; color:white; cursor:pointer; margin-left:10px;">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Help Chatbot Styles */
+        #chatBubble {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(to bottom left, #e14eca, #ba54f5, #e14eca);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(225, 78, 202, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        #chatBubble:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(225, 78, 202, 0.6);
+        }
+
+        .chat-tooltip {
+            position: fixed;
+            bottom: 100px;
+            right: 40px;
+            background: #27293d;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            z-index: 999;
+            animation: fadeInOut 3s ease-in-out;
+            opacity: 0;
+        }
+
+        @keyframes fadeInOut {
+
+            0%,
+            100% {
+                opacity: 0;
+            }
+
+            10%,
+            90% {
+                opacity: 1;
+            }
+        }
+
+        .chat-window {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 350px;
+            height: 500px;
+            background: #27293d;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            display: none;
+            flex-direction: column;
+            z-index: 1001;
+            overflow: hidden;
+        }
+
+        .chat-window.active {
+            display: flex;
+        }
+
+        .chat-header {
+            background: linear-gradient(to right, #e14eca, #ba54f5);
+            padding: 15px;
+            color: white;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .bot-message {
+            background: #1e1e2f;
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 80%;
+            align-self: flex-start;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.875rem;
+        }
+
+        .user-message {
+            background: linear-gradient(to right, #e14eca, #ba54f5);
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 80%;
+            align-self: flex-end;
+            color: white;
+            font-size: 0.875rem;
+        }
+
+        .suggested-questions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .suggestion-btn {
+            background: #2b3553;
+            border: 1px solid #e14eca;
+            color: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .suggestion-btn:hover {
+            background: #344675;
+            transform: translateX(5px);
+        }
+
+        .chat-input-container {
+            padding: 15px;
+            background: #1e1e2f;
+            display: flex;
+        }
+
+        #chatInput {
+            flex: 1;
+            padding: 10px 15px;
+            border-radius: 20px;
+            border: 1px solid #2b3553;
+            background: #27293d;
+            color: white;
+            font-size: 0.875rem;
+        }
+
+        #chatInput:focus {
+            outline: none;
+            border-color: #e14eca;
+        }
+    </style>
 
     <script>
         // --- 1. INITIALIZE CYTOSCAPE GRAPH (The Walking Graph) ---
@@ -235,10 +519,11 @@
                     selector: 'edge',
                     style: {
                         'width': 2,
-                        'line-color': '#333',
-                        'target-arrow-color': '#333',
+                        'line-color': '#ffffff',
+                        'target-arrow-color': '#ffffff',
                         'target-arrow-shape': 'triangle',
-                        'curve-style': 'bezier'
+                        'curve-style': 'bezier',
+                        'opacity': 0.6
                     }
                 },
                 // THE "ACTIVE" CLASS (This makes it light up Green)
@@ -264,10 +549,96 @@
             }
         });
 
+
         // Force Master node to center manually for a "Star" look
         cy.$('#master').position({ x: cy.width() / 2, y: cy.height() / 2 });
         cy.$('#report_gen').position({ x: cy.width() / 2, y: cy.height() - 50 });
 
+        // --- SCREENSHOT FUNCTION ---
+        function takeScreenshot() {
+            // Export the graph as a PNG image
+            const png = cy.png({
+                output: 'blob',
+                full: true,
+                scale: 2  // Higher quality (2x resolution)
+            });
+
+            // Create download link
+            const url = URL.createObjectURL(png);
+            const link = document.createElement('a');
+            link.download = 'agent_graph_' + new Date().toISOString().slice(0, 10) + '.png';
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            console.log('Graph screenshot downloaded!');
+        }
+
+        // --- DOWNLOAD PDF FUNCTION ---
+        function downloadReport() {
+            window.location.href = '/api/download_report';
+        }
+
+        // --- HELP CHATBOT FUNCTIONS ---
+        function toggleChat() {
+            const chatWindow = document.getElementById('chatWindow');
+            chatWindow.classList.toggle('active');
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            askQuestion(message);
+            input.value = '';
+        }
+
+        async function askQuestion(question) {
+            const chatMessages = document.getElementById('chatMessages');
+
+            // Add user message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'user-message';
+            userMsg.textContent = question;
+            chatMessages.appendChild(userMsg);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Show typing indicator
+            const typingMsg = document.createElement('div');
+            typingMsg.className = 'bot-message';
+            typingMsg.textContent = '...';
+            typingMsg.id = 'typing';
+            chatMessages.appendChild(typingMsg);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                const response = await fetch('/api/help', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: question })
+                });
+                const data = await response.json();
+
+                // Remove typing indicator
+                document.getElementById('typing').remove();
+
+                // Add bot response
+                const botMsg = document.createElement('div');
+                botMsg.className = 'bot-message';
+                botMsg.textContent = data.answer;
+                chatMessages.appendChild(botMsg);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (error) {
+                document.getElementById('typing').remove();
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'bot-message';
+                errorMsg.textContent = 'Sorry, I encountered an error. Please try again.';
+                chatMessages.appendChild(errorMsg);
+            }
+        }
 
         // --- 2. BACKEND STREAMING LOGIC ---
         async function runAnalysis() {
@@ -303,7 +674,64 @@
                         if (data.log) {
                             const entry = document.createElement('div');
                             entry.className = data.active_node === 'master' ? 'log-entry master' : 'log-entry worker';
-                            entry.textContent = data.log;
+                            entry.style.whiteSpace = 'pre-wrap';
+                            entry.style.wordBreak = 'break-word';
+
+                            const logText = data.log;
+                            const charLimit = 200;
+
+                            // Helper function to escape HTML
+                            const escapeHtml = (text) => {
+                                const div = document.createElement('div');
+                                div.textContent = text;
+                                return div.innerHTML;
+                            };
+
+                            // If message is long, add expand/collapse functionality
+                            if (logText.length > charLimit) {
+                                const preview = escapeHtml(logText.substring(0, charLimit));
+                                const fullText = escapeHtml(logText);
+
+                                const previewSpan = document.createElement('span');
+                                previewSpan.className = 'log-preview';
+                                previewSpan.innerHTML = preview + '...';
+
+                                const fullSpan = document.createElement('span');
+                                fullSpan.className = 'log-full';
+                                fullSpan.innerHTML = fullText;
+                                fullSpan.style.display = 'none';
+
+                                const readMoreLink = document.createElement('a');
+                                readMoreLink.href = '#';
+                                readMoreLink.className = 'read-more-btn';
+                                readMoreLink.style.color = '#e14eca';
+                                readMoreLink.style.fontSize = '0.85em';
+                                readMoreLink.style.textDecoration = 'underline';
+                                readMoreLink.style.marginLeft = '5px';
+                                readMoreLink.style.cursor = 'pointer';
+                                readMoreLink.textContent = 'Read More';
+
+                                // Toggle functionality
+                                readMoreLink.addEventListener('click', (e) => {
+                                    e.preventDefault();
+                                    if (fullSpan.style.display === 'none') {
+                                        previewSpan.style.display = 'none';
+                                        fullSpan.style.display = 'inline';
+                                        readMoreLink.textContent = 'Read Less';
+                                    } else {
+                                        previewSpan.style.display = 'inline';
+                                        fullSpan.style.display = 'none';
+                                        readMoreLink.textContent = 'Read More';
+                                    }
+                                });
+
+                                entry.appendChild(previewSpan);
+                                entry.appendChild(fullSpan);
+                                entry.appendChild(readMoreLink);
+                            } else {
+                                entry.textContent = logText;
+                            }
+
                             logBox.appendChild(entry);
                             logBox.scrollTop = logBox.scrollHeight;
                         }

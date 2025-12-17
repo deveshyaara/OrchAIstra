@@ -48,18 +48,39 @@ def master_node(state: AgentState):
     # 3. Create Plan (if no cache)
     if not state.get("plan"):
         # Explicitly ask for JSON to help the model
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a Pharma R&D Strategy Manager. Create a research plan. "
-                       "Return a JSON object with a 'tasks' list. "
-                       "Each task must have: 'worker_type', 'description', and 'parameters'.\n"
-                       " - Clinical tool needs 'molecule' and 'condition' in parameters.\n"
-                       " - Patent tool needs 'molecule' in parameters.\n"
-                       " - Web/Internal tools need 'query' in parameters."),
-            ("human", f"Query: {state['user_query']}")
-        ])
+        prompt = f"""
+You are a Master Strategist for Pharma R&D. Your task is to create a strategic plan to answer the following user query:
+{state['user_query']}
+
+You MAY use the following tools (agents):
+- Clinical Trial Search (worker_type: 'clinical') - Parameters: molecule, condition
+- Patent Analysis (worker_type: 'patent') - Parameters: molecule
+- Web Intelligence (worker_type: 'web') - Parameters: query (free-form search)
+
+Return a list of tasks in JSON format. Each task must have:
+- worker_type: one of 'clinical', 'patent', 'web'
+- description: what this agent will do
+- parameters: a dictionary of parameters to pass to the tool
+
+Example output:
+{{"tasks": [
+    {{"worker_type": "clinical", "description": "Search trials for thalidomide + leprosy", "parameters": {{"molecule": "thalidomide", "condition": "leprosy"}}}},
+    {{"worker_type": "patent", "description": "Analyze IP for thalidomide", "parameters": {{"molecule": "thalidomide"}}}},
+    {{"worker_type": "web", "description": "Find market data for thalidomide leprosy", "parameters": {{"query": "thalidomide leprosy market size"}}}}
+]}}
+"""
         
         try:
-            plan = invoke_structured_llm(prompt, PlanSchema)
+            print(f"[Master] 🧠 Invoking Thinking Model...")
+            response = invoke_structured_llm(prompt, PlanSchema)
+            
+            # For thinking models, let's log the raw response if available
+            if hasattr(response, 'thinking'):
+                print(f"[Master] 💭 CHAIN OF THOUGHT:")
+                print(f"    {response.thinking}")
+            
+            tasks = response.tasks
+            print(f"[Master] ✅ Generated {len(tasks)} tasks")
         except Exception as e:
             # Fallback plan if LLM fails
             print(f"LLM Planning Failed: {e}. Using fallback plan.")
@@ -69,10 +90,11 @@ def master_node(state: AgentState):
                     {"worker_type": "patent", "description": "Analyze patent landscape", "parameters": {"molecule": "Molecule X"}},
                     {"worker_type": "web", "description": "Search for market news", "parameters": {"query": "Pharma market news"}}
                 ]
-            plan = FallbackPlan()
+            response = FallbackPlan()
+            tasks = response.tasks
         
         new_tasks = []
-        for t in plan.tasks:
+        for t in tasks:
             # Handle both dict (if fallback) and object (if Pydantic)
             if isinstance(t, dict):
                 w_type = t['worker_type']

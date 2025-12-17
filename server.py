@@ -46,12 +46,12 @@ def generate_events(user_query):
                          log_msg = "> [Master] Analyzing results & planning next steps..."
                          
                 elif node in ["clinical", "patent", "web", "internal", "iqvia", "exim"]:
-                    # Worker node finished
+                    # Worker node finished - send full content, frontend will handle display
                     results = state.get("results", [])
                     if results:
                         last_res = results[-1]
-                        summary = last_res.get("content", "")[:50] + "..."
-                        log_msg = f"> [{node.upper()}] Task Complete. Data: {summary}"
+                        full_content = last_res.get("content", "")
+                        log_msg = f"> [{node.upper()}] Task Complete. Data: {full_content}"
                 
                 elif node == "report_gen":
                     log_msg = "> [Report] Compiling Final PDF Document..."
@@ -90,7 +90,46 @@ def download_report():
     except Exception as e:
         return {"error": str(e)}, 404
 
+@app.route('/api/help', methods=['POST'])
+def help_chatbot():
+    """AI assistant to help users understand how to use the system."""
+    try:
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        from src import config
+        
+        data = request.json
+        question = data.get('question', '')
+        
+        # Create a specialized prompt for the help assistant
+        system_prompt = """You are a helpful AI assistant for the Pharmaceutical R&D Research Assistant system.
+        
+Your role is to help users understand how to use this system effectively. The system:
+- Analyzes pharmaceutical research opportunities
+- Uses AI agents (Clinical, Patent, Web, Internal) to gather data
+- Generates comprehensive PDF reports
+- Supports queries like: "Investigate repurposing [drug] for [condition]"
+
+Key features:
+- Clinical Trials: Searches ClinicalTrials.gov
+- Patent Analysis: Checks IP landscape and freedom-to-operate
+- Web Intelligence: Finds market insights
+- Report Generation: Creates professional PDFs with borders and formatting
+
+Answer user questions concisely and helpfully. If they ask how to write queries, suggest formats like:
+"Evaluate the potential of [drug name] for treating [condition]"
+"What is the freedom-to-operate risk for [technology]?"
+"Analyze the commercial viability of [drug/therapy]"
+
+Keep responses under 100 words and friendly."""
+
+        llm = ChatGoogleGenerativeAI(model=config.GEMINI_MODEL, temperature=0.5)
+        response = llm.invoke(f"{system_prompt}\n\nUser Question: {question}")
+        
+        return {"answer": response.content}
+    except Exception as e:
+        return {"answer": f"I'm having trouble right now. Error: {str(e)}"}, 500
+
 if __name__ == '__main__':
-    print("Starting Jovian AI Server (v2.1 - Patched) on port 8081...")
-    # We use gunicorn for prod, but this is for local flask debug if needed
-    app.run(debug=True, port=8081)
+    print("Starting Jovian AI Server (v2.1 - Patched) on port 8080...")
+    # Using Flask Dev Server for better error visibility
+    app.run(debug=True, port=8080, host='0.0.0.0')

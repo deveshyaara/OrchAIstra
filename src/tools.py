@@ -163,39 +163,118 @@ from reportlab.lib.styles import getSampleStyleSheet
 
 @tool
 def tool_generate_pdf(text: str, filename: str = "Strategy_Report.pdf"):
-    """Generates a physical PDF file with proper formatting."""
+    """Generates a professional research paper style PDF with borders and proper formatting."""
     try:
-        doc = SimpleDocTemplate(filename, pagesize=letter)
+        from reportlab.lib import colors
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.platypus import PageBreak, Table, TableStyle
+        from datetime import datetime
+        
+        # Custom page template with borders and margins
+        def add_page_decorations(canvas, doc):
+            """Adds header, footer, and border to each page."""
+            canvas.saveState()
+            
+            # Draw border (inset from edges)
+            canvas.setStrokeColor(colors.HexColor('#2b3553'))
+            canvas.setLineWidth(2)
+            canvas.rect(0.5*inch, 0.5*inch, doc.width + 1*inch, doc.height + 1*inch)
+            
+            # Header
+            canvas.setFont('Helvetica-Bold', 9)
+            canvas.setFillColor(colors.HexColor('#e14eca'))
+            canvas.drawString(1*inch, doc.height + 1.3*inch, "Strategic Feasibility Analysis Report")
+            
+            # Footer
+            canvas.setFont('Helvetica', 8)
+            canvas.setFillColor(colors.grey)
+            canvas.drawRightString(doc.width + 1*inch, 0.3*inch, 
+                                   f"Page {doc.page} | Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+            canvas.drawString(1*inch, 0.3*inch, "Confidential - For Internal Use Only")
+            
+            canvas.restoreState()
+        
+        # Configure document with wider margins for research paper feel
+        doc = SimpleDocTemplate(
+            filename, 
+            pagesize=letter,
+            leftMargin=1.25*inch,
+            rightMargin=1.25*inch,
+            topMargin=1.5*inch,
+            bottomMargin=1*inch
+        )
+        
         styles = getSampleStyleSheet()
+        
+        # Custom styles for research paper
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Title'],
+            fontSize=24,
+            textColor=colors.HexColor('#e14eca'),
+            spaceAfter=30,
+            alignment=1,  # Center
+            fontName='Helvetica-Bold'
+        )
+        
+        heading1_style = ParagraphStyle(
+            'CustomHeading1',
+            parent=styles['Heading1'],
+            fontSize=16,
+            textColor=colors.HexColor('#1d8cf8'),
+            spaceAfter=12,
+            spaceBefore=12,
+            borderWidth=0,
+            borderColor=colors.HexColor('#2b3553'),
+            borderPadding=5,
+            fontName='Helvetica-Bold'
+        )
+        
+        body_style = ParagraphStyle(
+            'CustomBody',
+            parent=styles['BodyText'],
+            fontSize=11,
+            leading=16,
+            alignment=4,  # Justify
+            fontName='Helvetica'
+        )
+        
         story = []
         
-        # Add Title
-        story.append(Paragraph("Strategic Feasibility Report", styles['Title']))
-        story.append(Spacer(1, 12))
+        # Title Page Content
+        story.append(Spacer(1, 0.5*inch))
+        story.append(Paragraph("PHARMACEUTICAL R&D", title_style))
+        story.append(Paragraph("Strategic Feasibility Report", title_style))
+        story.append(Spacer(1, 0.3*inch))
+        story.append(Paragraph(f"<i>Report Generated: {datetime.now().strftime('%B %d, %Y')}</i>", 
+                              ParagraphStyle('DateStyle', parent=styles['Normal'], alignment=1, fontSize=10)))
+        story.append(Spacer(1, 1*inch))
         
-        # Process text into paragraphs
-        # We handle markdown-style headers roughly
+        # Process content
         lines = text.split('\n')
         for line in lines:
             line = line.strip()
             if not line:
-                story.append(Spacer(1, 6))
+                story.append(Spacer(1, 8))
                 continue
                 
             if line.startswith('# '):
-                story.append(Paragraph(line[2:], styles['Heading1']))
+                story.append(Paragraph(line[2:], heading1_style))
             elif line.startswith('## '):
                 story.append(Paragraph(line[3:], styles['Heading2']))
             elif line.startswith('### '):
                 story.append(Paragraph(line[4:], styles['Heading3']))
             elif line.startswith('- ') or line.startswith('* '):
-                story.append(Paragraph(f"• {line[2:]}", styles['BodyText']))
+                story.append(Paragraph(f"• {line[2:]}", body_style))
             else:
-                story.append(Paragraph(line, styles['BodyText']))
+                story.append(Paragraph(line, body_style))
             
-            story.append(Spacer(1, 4))
-            
-        doc.build(story)
+            story.append(Spacer(1, 6))
+        
+        # Build with custom page template
+        doc.build(story, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
+        
         return f"PDF Saved successfully: {os.path.abspath(filename)}"
     except Exception as e:
         return f"PDF Error: {e}"
