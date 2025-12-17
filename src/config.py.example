@@ -1,0 +1,29 @@
+import os
+
+# ===== IMPORTANT: DO NOT COMMIT THIS FILE WITH REAL API KEYS =====
+# Copy this file to config.py and fill in your actual API keys
+# The config.py file is in .gitignore to prevent accidental commits
+
+# Google API Configuration
+GOOGLE_API_KEY = "your-google-api-key-here"
+os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+
+GOOGLE_CSE_ID = "your-custom-search-engine-id-here"
+os.environ["GOOGLE_CSE_ID"] = GOOGLE_CSE_ID
+
+# Qdrant Vector Database
+QDRANT_URL = "your-qdrant-cloud-url-here" 
+QDRANT_API_KEY = "your-qdrant-api-key-here" 
+
+# AI Model Configuration
+GEMINI_MODEL = "gemini-2.5-flash"  # Latest model (Dec 2024)
+EMBEDDING_MODEL = "models/embedding-001"
+
+# LangSmith Tracing (optional)
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_API_KEY"] = "your-langsmith-api-key-here"
+os.environ["LANGSMITH_ENDPOINT"] = "https://api.smith.langchain.com"
+os.environ["LANGSMITH_PROJECT"] = os.getenv("LANGSMITH_PROJECT", "agentic-workflow-v2")
+
+# Patent APIs
+SCRAPINGDOG_API_KEY = "your-scrapingdog-api-key-here"
